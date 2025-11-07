@@ -5,22 +5,32 @@ app_description = "Open Source Lending software"
 app_email = "contact@frappe.io"
 app_license = "GNU General Public License (v3)"
 required_apps = ["erpnext"]
-app_logo_url = "/assets/lending/images/frappe-lending-logo.svg"
+app_logo_url = "/assets/lending/images/grp-spallenta-logo.svg"
 
 add_to_apps_screen = [
-	{
-		"name": "lending",
-		"logo": "/assets/lending/images/frappe-lending-logo.svg",
-		"title": "Lending",
-		"route": "/app/lending",
-		"has_permission": "lending.utils.check_app_permission",
-	}
+    {
+        "name": "lending",
+        "logo": "/assets/lending/images/grp-spallenta-logo.svg",
+        "title": "Lending",
+        "route": "/app/lending",
+        "has_permission": "lending.utils.check_app_permission",
+    }
 ]
 
+# Brand for Desk header/sidebar
+brand_html = (
+    '<img class="app-logo" src="/assets/lending/images/grp-spallenta-logo.svg" alt="GRP Spallenta"/>'
+)
+
 audit_trail_doctypes = [
-	# doctypes that make GL entries require Audit Trail to be maintained
-	# as per the laws applicable to Companies in India
-	"Loan Balance Adjustment",
+    # doctypes that make GL entries require Audit Trail to be maintained
+    # as per the laws applicable to Companies in India
+    "Loan Balance Adjustment",
+    "Loan Disbursement",
+    "Loan Interest Accrual",
+    "Loan Refund",
+    "Loan Repayment",
+    "Loan Write Off",
 	"Loan Disbursement",
 	"Loan Interest Accrual",
 	"Loan Refund",
