@@ -5,12 +5,12 @@ app_description = "Open Source Lending software"
 app_email = "contact@frappe.io"
 app_license = "GNU General Public License (v3)"
 required_apps = ["erpnext"]
-app_logo_url = "/assets/lending/images/grp-spallenta-logo.svg"
+app_logo_url = "/assets/lending/images/grp-spallenta-logo.png"
 
 add_to_apps_screen = [
     {
         "name": "lending",
-        "logo": "/assets/lending/images/grp-spallenta-logo.svg",
+        "logo": "/assets/lending/images/grp-spallenta-logo.png",
         "title": "Lending",
         "route": "/app/lending",
         "has_permission": "lending.utils.check_app_permission",
@@ -19,8 +19,14 @@ add_to_apps_screen = [
 
 # Brand for Desk header/sidebar
 brand_html = (
-    '<img class="app-logo" src="/assets/lending/images/grp-spallenta-logo.svg" alt="GRP Spallenta"/>'
+    '<img class="app-logo" src="/assets/lending/images/grp-spallenta-logo.png" alt="GRP Spallenta"/>'
 )
+
+# Website context to ensure favicon and splash/logo use GRP Spallenta branding
+website_context = {
+    "favicon": "/assets/lending/images/favicon-32.png",
+    "splash_image": "/assets/lending/images/grp-spallenta-logo.png",
+}
 
 audit_trail_doctypes = [
     # doctypes that make GL entries require Audit Trail to be maintained
