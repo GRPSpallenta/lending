@@ -47,3 +47,4 @@ lending.patches.v1_0.update_value_date_in_loan_repayment
 lending.patches.v1_0.update_value_date_in_loan_refund
 lending.patches.v1_0.update_value_date_in_pending_doctypes #1
 lending.patches.v1_0.reorganize_workspaces
+lending.patches.v1_0.ensure_users_workspace

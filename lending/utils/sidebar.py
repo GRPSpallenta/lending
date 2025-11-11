@@ -2,7 +2,7 @@ import frappe
 from typing import Dict, Any, List
 
 # Allowed root labels
-ALLOWED_ROOT = {"Lending", "Accounting", "CRM", "Home"}
+ALLOWED_ROOT = {"Lending", "Accounting", "CRM", "Users"}
 
 
 def _group_under_settings(items: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
@@ -35,7 +35,7 @@ def _group_under_settings(items: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
                 ordered.append(i)
                 break
 
-    for lbl in ["Home", "Lending", "Accounting", "CRM"]:
+    for lbl in ["Lending", "Accounting", "CRM", "Users"]:
         pick(lbl)
 
     ordered.append(settings)

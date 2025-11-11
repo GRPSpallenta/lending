@@ -9,7 +9,7 @@ app_logo_url = "/assets/lending/images/grp-spallenta-logo.png"
 
 # Include custom JS to tweak Desk sidebar presentation
 app_include_js = [
-    "/assets/lending/js/sidebar_filter.js",
+    "/assets/lending/js/landing_redirect.js",
     "lending.bundle.js"
 ]
 
