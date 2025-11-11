@@ -5,7 +5,8 @@
 */
 
 (function () {
-  const ALLOW_ROOT = ["Lending", "Accounting", "CRM"];
+  try { console.log("[lending] sidebar_filter loaded"); } catch (e) {}
+  const ALLOW_ROOT = ["Lending", "Accounting", "CRM", "Users"];
   const SETTINGS_LABEL = "Settings";
 
   function getRootList() {
@@ -20,6 +21,7 @@
   function reshape() {
     const rootList = getRootList();
     if (!rootList) return false;
+    try { console.debug("[lending] sidebar_filter: rootList found"); } catch (e) {}
 
     // Collect items
     const items = Array.from(rootList.children).filter((el) => el.classList.contains("standard-sidebar-item"));
@@ -71,6 +73,7 @@
     // Ensure order: Settings first, then allowed in their current order
     rootList.prepend(settings);
     allowed.forEach((el) => rootList.appendChild(el));
+    try { console.debug("[lending] sidebar_filter: applied, allowed=", allowed.length, "others=", others.length); } catch (e) {}
 
     return true;
   }

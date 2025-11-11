@@ -1,7 +1,6 @@
 import frappe
 from typing import Dict, Any, List
 
-# Allowed root labels
 ALLOWED_ROOT = {"Lending", "Accounting", "CRM", "Users"}
 
 
@@ -27,8 +26,8 @@ def _group_under_settings(items: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
         "name": "Settings",
     }
 
-    # Order: Home (if any), Lending, Accounting, CRM, then Settings
     ordered = []
+
     def pick(lbl):
         for i in allowed:
             if (i.get("label") or i.get("name")) == lbl:
@@ -59,15 +58,8 @@ def _resolve_core_provider():
 
 @frappe.whitelist()
 def get_workspace_sidebar_items(*args, **kwargs) -> Dict[str, Any]:
-    """
-    Override of Frappe's sidebar items provider. Fetches original data and rewrites the
-    'items' collection to include only Lending, Accounting, CRM, Users at root and groups
-    all others under a synthetic 'Settings' group.
-    """
     core_get = _resolve_core_provider()
     data = core_get(*args, **kwargs)
-
-    # Expected structure: { 'items': [ ... ] }
     items = data.get("items") or []
     data["items"] = _group_under_settings(items)
     return data

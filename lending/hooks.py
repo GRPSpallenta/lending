@@ -5,18 +5,142 @@ app_description = "Open Source Lending software"
 app_email = "contact@frappe.io"
 app_license = "GNU General Public License (v3)"
 required_apps = ["erpnext"]
+
+from typing import Dict, Any, List
+import frappe
+
+ALLOWED_ROOT = {"Lending", "Accounting", "CRM", "Users"}
+
+
+def _group_under_settings(items: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+    allowed = []
+    others = []
+    for it in items:
+        label = (it.get("label") or it.get("name") or "").strip()
+        if label in ALLOWED_ROOT:
+            allowed.append(it)
+        else:
+            others.append(it)
+
+    if not others:
+        return items
+
+    settings = {
+        "label": "Settings",
+        "icon": "settings",
+        "is_expandable": 1,
+        "items": others,
+        "type": "Module",
+        "name": "Settings",
+    }
+
+    ordered = []
+
+    def pick(lbl):
+        for i in allowed:
+            if (i.get("label") or i.get("name")) == lbl:
+                ordered.append(i)
+                break
+
+    for lbl in ["Lending", "Accounting", "CRM", "Users"]:
+        pick(lbl)
+
+    ordered.append(settings)
+    return ordered
+
+
+def _resolve_core_provider():
+    try:
+        from frappe.desk.doctype.workspace.workspace import (
+            get_workspace_sidebar_items as fn,
+        )
+        return fn
+    except Exception:
+        try:
+            from frappe.desk.doctype.workspace.workspace import get_sidebar_items as fn
+            return fn
+        except Exception:
+            from frappe.desk.desktop import get_workspace_sidebar_items as fn
+            return fn
+
+
+@frappe.whitelist()
+def get_workspace_sidebar_items(*args, **kwargs) -> Dict[str, Any]:
+    core_get = _resolve_core_provider()
+    # Guard against recursion if core_get points back to this function (due to patches)
+    if getattr(core_get, "__module__", "") == __name__:
+        # Build minimal items from Workspace docs
+        ws_list = frappe.get_all(
+            "Workspace",
+            filters={"public": 1, "is_hidden": 0},
+            fields=["name", "label", "icon", "module", "parent_page"],
+        )
+        roots = [
+            {
+                "name": w["name"],
+                "label": w.get("label") or w["name"],
+                "icon": w.get("icon") or "",
+                "module": w.get("module") or "",
+                "is_hidden": 0,
+                "public": 1,
+            }
+            for w in ws_list
+            if not (w.get("parent_page") or "").strip()
+        ]
+        data = {"items": roots}
+    else:
+        data = core_get(*args, **kwargs)
+    try:
+        frappe.logger("lending").info(
+            "sidebar_override called: items_in=%s", len((data or {}).get("items") or [])
+        )
+    except Exception:
+        pass
+    items = data.get("items") or []
+    data["items"] = _group_under_settings(items)
+    return data
+
+
+def _boot_patch_sidebar(session):
+    """Monkey-patch workspace sidebar providers at boot to guarantee override usage."""
+    try:
+        from frappe.desk.doctype import workspace as ws_pkg  # type: ignore
+        ws_mod = getattr(ws_pkg, "workspace", None)
+        if ws_mod:
+            try:
+                ws_mod.get_sidebar_items = get_workspace_sidebar_items  # type: ignore
+            except Exception:
+                pass
+            try:
+                ws_mod.get_workspace_sidebar_items = get_workspace_sidebar_items  # type: ignore
+            except Exception:
+                pass
+        # Also patch legacy location
+        try:
+            import frappe.desk.desktop as desktop
+            desktop.get_workspace_sidebar_items = get_workspace_sidebar_items  # type: ignore
+        except Exception:
+            pass
+        frappe.flags.lending_sidebar_patched = True
+        frappe.logger("lending").info("sidebar providers monkey-patched at boot")
+    except Exception:
+        # Avoid breaking login/boot on any error
+        pass
 app_logo_url = "/assets/lending/images/grp-spallenta-logo.png"
 
 # Include custom JS to tweak Desk sidebar presentation
 app_include_js = [
     "/assets/lending/js/landing_redirect.js",
+    "/assets/lending/js/sidebar_filter.js",
     "lending.bundle.js"
 ]
 
-# Override methods
-override_whitelisted_methods = {
-    "frappe.desk.desktop.get_workspace_sidebar_items": "lending.utils.sidebar.get_workspace_sidebar_items",
-}
+# Ensure scripts load specifically on Desk too
+desk_include_js = [
+    "lending.bundle.js",
+]
+
+# Note: no server overrides for sidebar to avoid recursion in website/desk boot
 
 add_to_apps_screen = [
     {
@@ -24,7 +148,7 @@ add_to_apps_screen = [
         "logo": "/assets/lending/images/grp-spallenta-logo.png",
         "title": "Lending",
         "route": "/app/lending",
-        "has_permission": "lending.utils.check_app_permission",
+        "has_permission": "lending.app_utils.check_app_permission",
     }
 ]
 
