@@ -7,6 +7,17 @@ app_license = "GNU General Public License (v3)"
 required_apps = ["erpnext"]
 app_logo_url = "/assets/lending/images/grp-spallenta-logo.png"
 
+# Include custom JS to tweak Desk sidebar presentation
+app_include_js = [
+    "/assets/lending/js/sidebar_filter.js",
+    "lending.bundle.js"
+]
+
+# Override methods
+override_whitelisted_methods = {
+    "frappe.desk.desktop.get_workspace_sidebar_items": "lending.utils.sidebar.get_workspace_sidebar_items",
+}
+
 add_to_apps_screen = [
     {
         "name": "lending",
