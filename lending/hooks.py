@@ -128,11 +128,12 @@ def _boot_patch_sidebar(session):
         pass
 app_logo_url = "/assets/lending/images/grp-spallenta-logo.png"
 
-# Include custom JS to tweak Desk sidebar presentation
+# Include custom JS to tweak Desk presentation
 app_include_js = [
     "/assets/lending/js/landing_redirect.js",
     "/assets/lending/js/sidebar_filter.js",
-    "lending.bundle.js"
+    "/assets/lending/js/workspace_buttons.js",
+    "lending.bundle.js",
 ]
 
 # Ensure scripts load specifically on Desk too
@@ -190,7 +191,7 @@ export_python_type_annotations = True
 
 # include js, css files in header of desk.html
 # app_include_css = "/assets/lending/css/lending.css"
-app_include_js = "lending.bundle.js"
+# NOTE: app_include_js defined above as list including bundle and custom scripts
 
 # fixtures
 fixtures = [

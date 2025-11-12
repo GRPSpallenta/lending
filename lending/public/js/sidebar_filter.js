@@ -101,3 +101,86 @@
     obs.observe(document.body, { childList: true, subtree: true });
   });
 })();
+
+// --- Workspace buttons relocation (runs here because this script is confirmed to load) ---
+(function(){
+  try { console.log("[lending] workspace_buttons piggyback loaded"); } catch(e) {}
+
+  function findHeaderActions(){
+    const sels = [
+      ".page-head .page-actions",
+      ".page-actions",
+      ".title-area .actions",
+    ];
+    for (const s of sels){ const el = document.querySelector(s); if (el) return el; }
+    return null;
+  }
+
+  function getPageContent(){
+    return document.querySelector(".desk-page .page-main-content") || document.querySelector(".page-content");
+  }
+
+  function injectWorkspaceHeader(){
+    const content = getPageContent();
+    if (!content) return null;
+    let hdr = content.querySelector(":scope > .workspace-header");
+    if (!hdr){
+      hdr = document.createElement("div");
+      hdr.className = "workspace-header";
+      hdr.style.display = "flex";
+      hdr.style.justifyContent = "flex-end";
+      hdr.style.gap = "8px";
+      hdr.style.margin = "10px 0";
+      content.prepend(hdr);
+      try { console.debug("[lending] injected .workspace-header"); } catch(e) {}
+    }
+    return hdr;
+  }
+
+  function text(el){ return (el && (el.innerText || el.textContent) || "").trim(); }
+
+  function moveButtons(){
+    // Only on Workspace pages that render a footer
+    const footer = document.querySelector(".workspace-footer");
+    if (!footer) return false;
+
+    const headerActions = findHeaderActions();
+    const localHeader  = injectWorkspaceHeader();
+    if (!headerActions && !localHeader) return false;
+
+    // Find Edit/New among footer buttons
+    const btns = Array.from(footer.querySelectorAll("button, a.btn, a[role='button']"));
+    if (!btns.length) return false;
+    const editBtn = btns.find(b => /(^|\s)edit(\s|$)/i.test(text(b)));
+    const newBtn  = btns.find(b => /(^|\s)new(\s|$)/i.test(text(b)) || /^\+\s*new$/i.test(text(b)));
+
+    function place(target, btn){ if (target && btn && !target.contains(btn)) { target.appendChild(btn); return true; } return false; }
+
+    let moved = false;
+    if (editBtn) moved = place(headerActions, editBtn) || place(localHeader, editBtn) || moved;
+    if (newBtn)  moved = place(headerActions, newBtn)  || place(localHeader, newBtn)  || moved;
+
+    if (moved) { try { console.debug("[lending] moved workspace buttons to header"); } catch(e) {} }
+    return moved;
+  }
+
+  function boot(){
+    let tries = 0;
+    const iv = setInterval(() => {
+      tries += 1;
+      if (tries <= 5) {
+        try {
+          const footerCount = document.querySelectorAll('.workspace-footer').length;
+          const headerCount = document.querySelectorAll('.page-head .page-actions, .page-actions, .title-area .actions').length;
+          const btnTexts = Array.from(document.querySelectorAll('.workspace-footer button, .workspace-footer a.btn, .workspace-footer a[role="button"]')).map(b => (b.innerText||b.textContent||'').trim());
+          console.debug('[lending] diag: footer=', footerCount, 'header=', headerCount, 'btns=', btnTexts);
+        } catch(e) {}
+      }
+      if (moveButtons() || tries > 60) clearInterval(iv);
+    }, 300);
+    const mo = new MutationObserver(() => moveButtons());
+    mo.observe(document.body, { childList: true, subtree: true });
+  }
+
+  if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", boot); else boot();
+})();
