@@ -53,3 +53,4 @@ lending.patches.v1_0.unhide_users_and_settings
 lending.patches.v1_0.promote_top_level_workspaces
 lending.patches.v1_0.set_settings_icon
 lending.patches.v1_0.set_settings_icon_tabler
+lending.patches.v1_0.set_settings_icon_material
