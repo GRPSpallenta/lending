@@ -229,6 +229,10 @@ def _attach_children(items: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
 
 
 def _children_for_lending() -> List[Dict[str, Any]]:
+    """
+    Parse Lending workspace and convert all card breaks and shortcuts 
+    into a hierarchical sidebar menu structure.
+    """
     try:
         if not frappe.db.exists("Workspace", "Lending"):
             return []
@@ -237,47 +241,15 @@ def _children_for_lending() -> List[Dict[str, Any]]:
     except Exception:
         return []
 
-    def pick_link(labels: List[str], types: List[str] | None = None, is_report: bool | None = None):
-        out: List[Dict[str, Any]] = []
-        for r in rows:
-            if (r.get("type") or "").strip() != "Link":
-                continue
-            lbl = (r.get("label") or r.get("link_to") or "").strip()
-            if labels and lbl not in labels:
-                continue
-            if types is not None and (r.get("link_type") or "").strip() not in types:
-                continue
-            if is_report is not None and (1 if r.get("is_query_report") else 0) != (1 if is_report else 0):
-                continue
-            item = {
-                "label": lbl,
-                "type": "Link",
-                "link_type": r.get("link_type") or "",
-                "link_to": r.get("link_to") or "",
-            }
-            route = _route_for_link(r)
-            if route:
-                item["route"] = route
-            out.append(item)
-        return out
-
     groups: List[Dict[str, Any]] = []
-
-    def add_group(name: str, items: List[Dict[str, Any]]):
-        if not items:
-            return
-        groups.append({
-            "label": name,
-            "is_expandable": 1,
-            "type": "Module",
-            "items": items,
-        })
-
-    # Add Shortcuts group from workspace.shortcuts
+    current_group: Dict[str, Any] | None = None
+    
+    # First, add shortcuts section from workspace.shortcuts
     try:
         sc_rows = list(ws.get("shortcuts") or [])
     except Exception:
         sc_rows = []
+    
     if sc_rows:
         sc_items: List[Dict[str, Any]] = []
         for s in sc_rows:
@@ -298,19 +270,60 @@ def _children_for_lending() -> List[Dict[str, Any]]:
             if route:
                 item["route"] = route
             sc_items.append(item)
-        add_group("Shortcuts", sc_items)
-
-    add_group("Loan origination", pick_link(["Loan Origination"], types=["Workspace"]))
-    add_group("Applications", pick_link(["Loan Application"]))
-    add_group("Disbursements", pick_link(["Loan Disbursement"]))
-    add_group("Repayments", pick_link(["Loan Repayment"]))
-    add_group("Demands", pick_link(["Loan Demand"]))
-    add_group("Repayment Schedule", pick_link(["Loan Repayment Schedule"]))
-    add_group("Financial Reports", pick_link([], is_report=True))
-
+        
+        if sc_items:
+            groups.append({
+                "label": "Shortcuts",
+                "is_expandable": 1,
+                "type": "Module",
+                "items": sc_items,
+            })
+    
+    # Process all card breaks and their links from workspace.links
+    for row in rows:
+        row_type = (row.get("type") or "").strip()
+        
+        if row_type == "Card Break":
+            # Start a new group
+            group_label = (row.get("label") or "").strip()
+            if group_label:
+                current_group = {
+                    "label": group_label,
+                    "is_expandable": 1,
+                    "type": "Module",
+                    "items": [],
+                }
+                groups.append(current_group)
+        
+        elif row_type == "Link":
+            # Skip hidden links
+            if row.get("hidden"):
+                continue
+                
+            # Add link to current group
+            if current_group is not None:
+                lbl = (row.get("label") or row.get("link_to") or "").strip()
+                if not lbl:
+                    continue
+                    
+                item = {
+                    "label": lbl,
+                    "type": "Link",
+                    "link_type": row.get("link_type") or "",
+                    "link_to": row.get("link_to") or "",
+                }
+                route = _route_for_link(row)
+                if route:
+                    item["route"] = route
+                current_group["items"].append(item)
+    
+    # Remove empty groups
+    groups = [g for g in groups if g.get("items")]
+    
     # Fallback to default grouping if nothing matched
     if not groups:
         return _children_from_workspace("Lending")
+    
     return groups
 
 # Include custom CSS and JS to tweak Desk presentation
