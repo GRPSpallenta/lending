@@ -8,6 +8,17 @@
   try { console.log("[lending] sidebar_filter loaded"); } catch (e) {}
   const ALLOW_ROOT = ["Lending", "Accounting", "CRM", "Users"];
   const SETTINGS_LABEL = "Settings";
+  const LENDING_GROUP_LABEL = "Lending";
+  const LENDING_CHILDREN = new Set([
+    "Loan origination",
+    "Loan Origination",
+    "Applications",
+    "Disbursements",
+    "Repayments",
+    "Demands",
+    "Repayment Schedule",
+    "Financial Reports",
+  ]);
 
   function getRootList() {
     // Typical structure: .desk-sidebar > .standard-sidebar-section > .standard-sidebar-items
@@ -70,6 +81,46 @@
 
     // Move other items into Settings
     others.forEach((li) => nestedList.appendChild(li));
+
+    // Group specific children under Lending
+    const lendingRoot = allowed.find((el) => {
+      const lbl = el.querySelector(".sidebar-item-label, .item-label, a, span");
+      return lbl && (lbl.textContent || "").trim() === LENDING_GROUP_LABEL;
+    });
+    if (lendingRoot) {
+      let lendNested = lendingRoot.querySelector(":scope > .standard-sidebar-items.nested");
+      if (!lendNested) {
+        const wrap = lendingRoot.querySelector(":scope > .sidebar-item-container") || lendingRoot;
+        let chev = lendingRoot.querySelector(":scope > .chev");
+        if (!chev && wrap) {
+          chev = document.createElement("span");
+          chev.className = "chev";
+          chev.style.cssText = "margin-left:auto; transition: transform 160ms ease; display:inline-block;";
+          chev.textContent = "▸";
+          wrap.appendChild(chev);
+          wrap.addEventListener("click", () => {
+            const show = lendNested.style.display === "none";
+            lendNested.style.display = show ? "block" : "none";
+            chev.style.transform = show ? "rotate(90deg)" : "rotate(0deg)";
+          });
+        }
+        lendNested = document.createElement("div");
+        lendNested.className = "standard-sidebar-items nested";
+        lendNested.style.display = "none";
+        lendingRoot.appendChild(lendNested);
+      }
+
+      // Move target roots into Lending nested
+      Array.from(rootList.children).forEach((li) => {
+        if (!li.classList.contains("standard-sidebar-item")) return;
+        if (li === lendingRoot || li === settings) return;
+        const labelEl = li.querySelector(".sidebar-item-label, .item-label, a, span");
+        const label = labelEl ? (labelEl.textContent || "").trim() : "";
+        if (LENDING_CHILDREN.has(label)) {
+          lendNested.appendChild(li);
+        }
+      });
+    }
 
     // Ensure allowed + Settings are at top
     // Ensure order: Settings first, then allowed in their current order
