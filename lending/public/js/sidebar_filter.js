@@ -51,16 +51,18 @@
       settings.innerHTML = `
         <div class="sidebar-item-container">
           <span class="sidebar-item-label">${SETTINGS_LABEL}</span>
-          <span class="icon small" style="margin-left:auto">▾</span>
+          <span class="chev" aria-hidden="true" style="margin-left:auto; transition: transform 160ms ease; display:inline-block;">▸</span>
         </div>
         <div class="standard-sidebar-items nested" style="display:none;"></div>
       `;
       rootList.prepend(settings);
       const header = settings.querySelector(".sidebar-item-container");
       const nested = settings.querySelector(".standard-sidebar-items.nested");
+      const chev = settings.querySelector(".chev");
       header.addEventListener("click", () => {
         const show = nested.style.display === "none";
         nested.style.display = show ? "block" : "none";
+        if (chev) chev.style.transform = show ? "rotate(90deg)" : "rotate(0deg)";
       });
     }
 

@@ -1,4 +1,6 @@
 from datetime import date, timedelta
+import os
+import json
 
 import frappe
 from frappe.utils.user import is_website_user
@@ -31,3 +33,67 @@ def list_workspace_icons():
     except Exception:
         pass
     return rows
+
+
+@frappe.whitelist()
+def sync_lending_workspace_from_file():
+    """Force-sync the 'Lending' Workspace from its JSON in this app.
+    This is version-safe where sync_workspaces isn't available.
+    """
+    # Resolve file path inside the app
+    app_path = frappe.get_app_path("lending")
+    ws_path = os.path.join(
+        app_path,
+        "lending",
+        "loan_management",
+        "workspace",
+        "lending",
+        "lending.json",
+    )
+    if not os.path.exists(ws_path):
+        frappe.throw(f"Workspace JSON not found at {ws_path}")
+
+    with open(ws_path, "r", encoding="utf-8") as f:
+        data = json.load(f)
+
+    name = data.get("name") or data.get("label") or "Lending"
+    # Upsert Workspace doc
+    if frappe.db.exists("Workspace", name):
+        doc = frappe.get_doc("Workspace", name)
+    else:
+        doc = frappe.new_doc("Workspace")
+        doc.name = name
+
+    # Copy selected fields from file
+    for field in [
+        "app",
+        "charts",
+        "content",
+        "custom_blocks",
+        "icon",
+        "indicator_color",
+        "is_hidden",
+        "label",
+        "links",
+        "module",
+        "number_cards",
+        "public",
+        "quick_lists",
+        "restrict_to_domain",
+        "roles",
+        "shortcuts",
+        "title",
+        "type",
+    ]:
+        if field in data:
+            setattr(doc, field, data[field])
+
+    # Ensure visibility
+    doc.public = 1
+    doc.is_hidden = 0
+
+    # Save
+    doc.flags.ignore_version = True
+    doc.save(ignore_permissions=True)
+    frappe.db.commit()
+    return {"updated": name, "path": ws_path}
