@@ -1,0 +1,109 @@
+/* Dribbble-inspired (Option A) theme for Lending Desk
+   Palette: teal/indigo accents, soft neutrals
+   Scope: Desk/workspace only; avoid website contamination
+*/
+
+:root {
+  --lend-bg: #f6f8fb;
+  --lend-card-bg: #ffffff;
+  --lend-text: #1f2937;
+  --lend-muted: #6b7280;
+  --lend-border: #e5e7eb;
+  --lend-shadow: 0 1px 2px rgba(16, 24, 40, 0.06), 0 1px 3px rgba(16, 24, 40, 0.10);
+
+  --lend-primary: #2563eb; /* indigo-600 */
+  --lend-primary-weak: #dbeafe; /* indigo-100 */
+  --lend-accent: #14b8a6; /* teal-500 */
+  --lend-accent-weak: #ccfbf1; /* teal-100 */
+
+  --lend-success: #16a34a;
+  --lend-warning: #d97706;
+  --lend-danger: #dc2626;
+  --lend-info: #2563eb;
+}
+
+/* Page background */
+.desk-page .page-main-content,
+.page-container .page-content,
+.workspace {
+  background: var(--lend-bg) !important;
+}
+
+/* Generic cards */
+.desk-page .widget,
+.desk-page .widget.not-editable,
+.workspace .widget,
+.workspace .widget-group .widget,
+.page-content .widget {
+  background: var(--lend-card-bg) !important;
+  border: 1px solid var(--lend-border) !important;
+  border-radius: 12px !important;
+  box-shadow: var(--lend-shadow) !important;
+}
+
+/* Section headers */
+.workspace .widget .widget-head,
+.workspace .widget .widget-title,
+.page-content .widget .widget-head {
+  color: var(--lend-text) !important;
+}
+
+/* KPI/Number card emphasis */
+.number-card-container .number,
+.widget.number-card .number,
+.widget.number .number {
+  color: var(--lend-text) !important;
+  font-weight: 700 !important;
+}
+
+/* Accent chip for deltas (if present) */
+.widget.number .change-indicator,
+.number-card-container .change-indicator {
+  background: var(--lend-accent-weak) !important;
+  color: var(--lend-accent) !important;
+  border-radius: 9999px !important;
+  padding: 2px 8px !important;
+  font-weight: 600 !important;
+}
+
+/* Status pills (lists, dashboards) */
+.badge,
+.indicator,
+.status {
+  border-radius: 9999px !important;
+  padding: 2px 10px !important;
+  font-weight: 600 !important;
+}
+
+.indicator.green, .badge-success { background: #dcfce7 !important; color: var(--lend-success) !important; }
+.indicator.orange, .badge-warning { background: #fef3c7 !important; color: var(--lend-warning) !important; }
+.indicator.red, .badge-danger { background: #fee2e2 !important; color: var(--lend-danger) !important; }
+.indicator.blue, .badge-info { background: var(--lend-primary-weak) !important; color: var(--lend-info) !important; }
+
+/* Workspace header spacing for action buttons (works with workspace_buttons.js) */
+.workspace-header {
+  margin: 12px 0 !important;
+}
+
+/* Sidebar tidy up (aligns with sidebar_filter.js) */
+.desk-sidebar .standard-sidebar-item .sidebar-item-container {
+  border-radius: 10px !important;
+}
+.desk-sidebar .standard-sidebar-item .sidebar-item-container:hover {
+  background: #eef2ff !important; /* indigo-50 */
+}
+
+/* Tables: subtle row hover */
+.list-row-container .level,
+.awesomebar-results .search-results .list-row {
+  transition: background 120ms ease-in-out;
+}
+.list-row:hover {
+  background: #f8fafc !important; /* slate-50 */
+}
+
+/* Charts: add card-like backdrop where possible */
+.frappe-chart, .chart-container {
+  background: var(--lend-card-bg);
+  border-radius: 12px;
+}

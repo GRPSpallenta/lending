@@ -128,7 +128,10 @@ def _boot_patch_sidebar(session):
         pass
 app_logo_url = "/assets/lending/images/grp-spallenta-logo.png"
 
-# Include custom JS to tweak Desk presentation
+# Include custom CSS and JS to tweak Desk presentation
+app_include_css = [
+    "/assets/lending/css/lending_theme.css",
+]
 app_include_js = [
     "/assets/lending/js/landing_redirect.js",
     "/assets/lending/js/sidebar_filter.js",
