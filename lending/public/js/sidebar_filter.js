@@ -41,13 +41,20 @@
     // Separate allowed vs others
     const allowed = [];
     const others = [];
+    const lendTargets = [];
     items.forEach((li) => {
       const labelEl = li.querySelector(".sidebar-item-label, .item-label, a, span");
       const label = labelEl ? (labelEl.textContent || "").trim() : "";
+      const labelLower = label.toLowerCase();
+      const isLendingTarget = Array.from(LENDING_CHILDREN).some((t) => t.toLowerCase() === labelLower);
       if (ALLOW_ROOT.includes(label) || label === "Home") {
         allowed.push(li);
       } else {
-        others.push(li);
+        if (isLendingTarget) {
+          lendTargets.push(li);
+        } else {
+          others.push(li);
+        }
       }
     });
 
@@ -79,7 +86,7 @@
 
     const nestedList = settings.querySelector(".standard-sidebar-items.nested");
 
-    // Move other items into Settings
+    // Move other items into Settings (excluding Lending targets)
     others.forEach((li) => nestedList.appendChild(li));
 
     // Group specific children under Lending
@@ -110,16 +117,8 @@
         lendingRoot.appendChild(lendNested);
       }
 
-      // Move target roots into Lending nested
-      Array.from(rootList.children).forEach((li) => {
-        if (!li.classList.contains("standard-sidebar-item")) return;
-        if (li === lendingRoot || li === settings) return;
-        const labelEl = li.querySelector(".sidebar-item-label, .item-label, a, span");
-        const label = labelEl ? (labelEl.textContent || "").trim() : "";
-        if (LENDING_CHILDREN.has(label)) {
-          lendNested.appendChild(li);
-        }
-      });
+      // Move target roots into Lending nested (even if they were already under Settings)
+      lendTargets.forEach((li) => lendNested.appendChild(li));
     }
 
     // Ensure allowed + Settings are at top
