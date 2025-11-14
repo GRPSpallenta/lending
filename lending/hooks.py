@@ -357,6 +357,7 @@ boot_session = "lending.hooks._boot_patch_sidebar"
 
 override_whitelisted_methods = {
     "frappe.desk.doctype.workspace.workspace.get_workspace_sidebar_items": "lending.hooks.get_workspace_sidebar_items",
+    "frappe.desk.doctype.workspace.workspace.get_sidebar_items": "lending.hooks.get_workspace_sidebar_items",
     "frappe.desk.desktop.get_workspace_sidebar_items": "lending.hooks.get_workspace_sidebar_items",
 }
 
