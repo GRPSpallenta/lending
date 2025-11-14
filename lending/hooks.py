@@ -7,9 +7,20 @@ app_license = "GNU General Public License (v3)"
 required_apps = ["erpnext"]
 
 from typing import Dict, Any, List
+from urllib.parse import quote
 import frappe
 
 ALLOWED_ROOT = {"Lending", "Accounting", "CRM", "Users"}
+SUPPRESS_ROOTS = {
+    "Loan origination",
+    "Loan Origination",
+    "Applications",
+    "Disbursements",
+    "Repayments",
+    "Demands",
+    "Repayment Schedule",
+    "Financial Reports",
+}
 
 
 def _group_under_settings(items: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
@@ -20,7 +31,8 @@ def _group_under_settings(items: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
         if label in ALLOWED_ROOT:
             allowed.append(it)
         else:
-            others.append(it)
+            if label not in SUPPRESS_ROOTS:
+                others.append(it)
 
     if not others:
         return items
@@ -97,7 +109,9 @@ def get_workspace_sidebar_items(*args, **kwargs) -> Dict[str, Any]:
     except Exception:
         pass
     items = data.get("items") or []
-    data["items"] = _group_under_settings(items)
+    items = _group_under_settings(items)
+    items = _attach_children(items)
+    data["items"] = items
     return data
 
 
@@ -127,6 +141,177 @@ def _boot_patch_sidebar(session):
         # Avoid breaking login/boot on any error
         pass
 app_logo_url = "/assets/lending/images/grp-spallenta-logo.png"
+
+def _route_for_link(link: Dict[str, Any]) -> str | None:
+    lt = (link.get("link_type") or "").strip()
+    to = (link.get("link_to") or link.get("label") or "").strip()
+    if not to:
+        return None
+    if lt == "DocType":
+        return f"/app/{frappe.scrub(to)}"
+    if lt == "Report":
+        return f"/app/query-report/{quote(to)}"
+    if lt == "Dashboard":
+        return f"/app/dashboard/{frappe.scrub(to)}"
+    if lt == "Workspace":
+        return f"/app/{frappe.scrub(to)}"
+    return None
+
+
+def _children_from_workspace(ws_name: str) -> List[Dict[str, Any]]:
+    try:
+        if not frappe.db.exists("Workspace", ws_name):
+            return []
+        ws = frappe.get_doc("Workspace", ws_name)
+        rows = list(ws.get("links") or [])
+    except Exception:
+        return []
+
+    groups: List[Dict[str, Any]] = []
+    current: Dict[str, Any] | None = None
+
+    def ensure_current(label: str):
+        nonlocal current
+        current = {
+            "label": label or "Links",
+            "is_expandable": 1,
+            "type": "Module",
+            "items": [],
+        }
+        groups.append(current)
+
+    for r in rows:
+        rtype = (r.get("type") or "").strip()
+        if rtype == "Card Break":
+            ensure_current(r.get("label") or "Group")
+        elif rtype == "Link":
+            if current is None:
+                ensure_current("Links")
+            item: Dict[str, Any] = {
+                "label": r.get("label") or r.get("link_to") or "",
+                "type": "Link",
+                "link_type": r.get("link_type") or "",
+                "link_to": r.get("link_to") or "",
+            }
+            route = _route_for_link(r)
+            if route:
+                item["route"] = route
+            current["items"].append(item)
+
+    return groups
+
+
+def _attach_children(items: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+    for it in items:
+        label = (it.get("label") or it.get("name") or "").strip()
+        if label in ALLOWED_ROOT:
+            # Special categorization for Lending
+            if label == "Lending":
+                children = _children_for_lending()
+            else:
+                children = _children_from_workspace(label)
+            if children:
+                it["is_expandable"] = 1
+                it["items"] = children
+        elif label == "Settings":
+            # Expand each Settings child module using its Workspace links
+            child_items = []
+            for child in (it.get("items") or []):
+                c_label = (child.get("label") or child.get("name") or "").strip()
+                c = dict(child)
+                c_children = _children_from_workspace(c_label)
+                if c_children:
+                    c["is_expandable"] = 1
+                    c["items"] = c_children
+                child_items.append(c)
+            it["items"] = child_items
+    return items
+
+
+def _children_for_lending() -> List[Dict[str, Any]]:
+    try:
+        if not frappe.db.exists("Workspace", "Lending"):
+            return []
+        ws = frappe.get_doc("Workspace", "Lending")
+        rows = list(ws.get("links") or [])
+    except Exception:
+        return []
+
+    def pick_link(labels: List[str], types: List[str] | None = None, is_report: bool | None = None):
+        out: List[Dict[str, Any]] = []
+        for r in rows:
+            if (r.get("type") or "").strip() != "Link":
+                continue
+            lbl = (r.get("label") or r.get("link_to") or "").strip()
+            if labels and lbl not in labels:
+                continue
+            if types is not None and (r.get("link_type") or "").strip() not in types:
+                continue
+            if is_report is not None and (1 if r.get("is_query_report") else 0) != (1 if is_report else 0):
+                continue
+            item = {
+                "label": lbl,
+                "type": "Link",
+                "link_type": r.get("link_type") or "",
+                "link_to": r.get("link_to") or "",
+            }
+            route = _route_for_link(r)
+            if route:
+                item["route"] = route
+            out.append(item)
+        return out
+
+    groups: List[Dict[str, Any]] = []
+
+    def add_group(name: str, items: List[Dict[str, Any]]):
+        if not items:
+            return
+        groups.append({
+            "label": name,
+            "is_expandable": 1,
+            "type": "Module",
+            "items": items,
+        })
+
+    # Add Shortcuts group from workspace.shortcuts
+    try:
+        sc_rows = list(ws.get("shortcuts") or [])
+    except Exception:
+        sc_rows = []
+    if sc_rows:
+        sc_items: List[Dict[str, Any]] = []
+        for s in sc_rows:
+            lbl = (s.get("label") or s.get("link_to") or "").strip()
+            if not lbl:
+                continue
+            item = {
+                "label": lbl,
+                "type": "Link",
+                "link_type": s.get("type") or s.get("link_type") or "",
+                "link_to": s.get("link_to") or "",
+            }
+            route = _route_for_link({
+                "link_type": item["link_type"],
+                "link_to": item["link_to"],
+                "label": lbl,
+            })
+            if route:
+                item["route"] = route
+            sc_items.append(item)
+        add_group("Shortcuts", sc_items)
+
+    add_group("Loan origination", pick_link(["Loan Origination"], types=["Workspace"]))
+    add_group("Applications", pick_link(["Loan Application"]))
+    add_group("Disbursements", pick_link(["Loan Disbursement"]))
+    add_group("Repayments", pick_link(["Loan Repayment"]))
+    add_group("Demands", pick_link(["Loan Demand"]))
+    add_group("Repayment Schedule", pick_link(["Loan Repayment Schedule"]))
+    add_group("Financial Reports", pick_link([], is_report=True))
+
+    # Fallback to default grouping if nothing matched
+    if not groups:
+        return _children_from_workspace("Lending")
+    return groups
 
 # Include custom CSS and JS to tweak Desk presentation
 app_include_css = [
@@ -165,6 +350,14 @@ brand_html = (
 website_context = {
     "favicon": "/assets/lending/images/favicon-32.png",
     "splash_image": "/assets/lending/images/grp-spallenta-logo.png",
+}
+
+# Ensure our sidebar override is active
+boot_session = "lending.hooks._boot_patch_sidebar"
+
+override_whitelisted_methods = {
+    "frappe.desk.doctype.workspace.workspace.get_workspace_sidebar_items": "lending.hooks.get_workspace_sidebar_items",
+    "frappe.desk.desktop.get_workspace_sidebar_items": "lending.hooks.get_workspace_sidebar_items",
 }
 
 audit_trail_doctypes = [
