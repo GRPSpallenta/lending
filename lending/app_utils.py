@@ -97,3 +97,20 @@ def sync_lending_workspace_from_file():
     doc.save(ignore_permissions=True)
     frappe.db.commit()
     return {"updated": name, "path": ws_path}
+
+
+@frappe.whitelist()
+def sidebar_summary():
+    from lending.hooks import get_workspace_sidebar_items
+    data = get_workspace_sidebar_items()
+    items = data.get("items") or []
+    roots = [(i.get("label") or i.get("name") or "").strip() for i in items]
+    lending = next((i for i in items if (i.get("label") or i.get("name")) == "Lending"), {})
+    groups = [g.get("label") for g in (lending.get("items") or [])]
+    shortcuts = next((g for g in (lending.get("items") or []) if (g.get("label") == "Shortcuts")), {})
+    shortcut_labels = [i.get("label") for i in (shortcuts.get("items") or [])]
+    try:
+        print({"roots": roots, "groups": groups, "shortcuts": shortcut_labels})
+    except Exception:
+        pass
+    return {"roots": roots, "groups": groups, "shortcuts": shortcut_labels}
